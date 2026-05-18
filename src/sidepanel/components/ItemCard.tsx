@@ -19,6 +19,32 @@ function isSoldOut(item: CartItem): boolean {
   return item.priceStatus === 'unavailable' && item.type === 'hotel';
 }
 
+/** 解析机票信息：从 title/subtitle 中提取关键展示字段 */
+function parseFlightDisplay(item: CartItem) {
+  // title 通常包含航班号，subtitle 包含航线等
+  const title = item.title || '';
+  const subtitle = item.subtitle || '';
+  const raw = item.rawData || {};
+
+  // 航班号：取第一个匹配的
+  const flightNoMatch = title.match(/([A-Z]{2}\d{3,5})/);
+  const flightNo = flightNoMatch ? flightNoMatch[1] : '';
+
+  // 机场：尝试从 subtitle 或 rawData 解析 "上海虹桥 → 北京首都" 格式
+  const routeMatch = subtitle.match(/(.+?)\s*[→\-–>]+\s*(.+?)(?:\s|$)/) ||
+    title.match(/(.+?)\s*[→\-–>]+\s*(.+?)(?:\s|$)/);
+  const departure = (raw['departure'] as string) || routeMatch?.[1] || '';
+  const arrival = (raw['arrival'] as string) || routeMatch?.[2] || '';
+
+  // 舱位
+  const cabin = (raw['cabin'] as string) || subtitle.match(/(经济舱|商务舱|头等舱|超级经济舱)/)?.[1] || '';
+
+  // 时间
+  const timeStr = item.startTime && item.endTime ? `${item.startTime} - ${item.endTime}` : '';
+
+  return { flightNo, departure, arrival, cabin, timeStr };
+}
+
 export const ItemCard: React.FC<ItemCardProps> = ({ item }) => {
   const removeItem = useCartStore((s) => s.removeItem);
 
@@ -72,17 +98,38 @@ export const ItemCard: React.FC<ItemCardProps> = ({ item }) => {
         <div className="flex items-start gap-2">
           <span className="text-lg">{typeIcons[item.type] ?? '📌'}</span>
           <div>
-            <p className={`font-medium text-sm ${isUnavailable ? 'text-red-700 line-through' : 'text-gray-800'}`}>
-              {item.title}
-            </p>
-            {item.subtitle && (
-              <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
-            )}
-            {item.startTime && (
-              <p className="text-xs text-gray-400 mt-1">
-                {item.startTime}
-                {item.endTime ? ` - ${item.endTime}` : ''}
-              </p>
+            {item.type === 'flight' ? (() => {
+              const f = parseFlightDisplay(item);
+              return (
+                <>
+                  {f.departure && f.arrival && (
+                    <p className={`font-medium text-sm ${isUnavailable ? 'text-red-700 line-through' : 'text-gray-800'}`}>
+                      {f.departure} → {f.arrival}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {[f.flightNo, f.cabin].filter(Boolean).join(' · ')}
+                  </p>
+                  {f.timeStr && (
+                    <p className="text-xs text-gray-400 mt-0.5">{f.timeStr}</p>
+                  )}
+                </>
+              );
+            })() : (
+              <>
+                <p className={`font-medium text-sm ${isUnavailable ? 'text-red-700 line-through' : 'text-gray-800'}`}>
+                  {item.title}
+                </p>
+                {item.subtitle && (
+                  <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                )}
+                {item.startTime && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {item.startTime}
+                    {item.endTime ? ` - ${item.endTime}` : ''}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

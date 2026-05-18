@@ -6,6 +6,32 @@ import { ShareButton } from './components/ShareButton';
 import { useCartStore } from './store/cartStore';
 import { useModeStore } from './store/modeStore';
 
+/** 紧凑日期选择器 */
+const AnchorDatePicker: React.FC = () => {
+  const reanchor = useCartStore((s) => s.reanchor);
+  const items = useCartStore((s) => s.items);
+
+  // 从 items 中推断 anchorDate（最早的 startDate）或用今天
+  const anchorDate = React.useMemo(() => {
+    const dates = items.map((i) => i.startDate).filter(Boolean).sort();
+    return dates[0] || new Date().toISOString().slice(0, 10);
+  }, [items]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val) reanchor(val);
+  };
+
+  return (
+    <input
+      type="date"
+      value={anchorDate}
+      onChange={handleChange}
+      className="text-xs border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 w-[120px]"
+    />
+  );
+};
+
 const App: React.FC = () => {
   const items = useCartStore((s) => s.items);
   const setTotalCount = useModeStore((s) => s.setTotalCount);
@@ -37,6 +63,7 @@ const App: React.FC = () => {
       <header className="flex items-center justify-between px-4 py-3 bg-white border-b shadow-sm">
         <h1 className="text-lg font-semibold text-gray-800">🧳 行程单</h1>
         <div className="flex items-center gap-2">
+          <AnchorDatePicker />
           <span className="text-sm text-gray-500">{items.length} 项</span>
           <ShareButton />
         </div>
