@@ -1,0 +1,73 @@
+{
+  "manifest_version": 3,
+  "name": "Travel Cart - 行程单",
+  "version": "0.1.0",
+  "description": "携程行程收藏助手，一键添加机票/酒店到行程单",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/ctrip-flight.ts-loader-DFGI_AwO.js"
+      ],
+      "matches": [
+        "https://flights.ctrip.com/*",
+        "https://www.ctrip.com/flights/*"
+      ]
+    },
+    {
+      "js": [
+        "assets/ctrip-hotel.ts-loader-CQeMkxPz.js"
+      ],
+      "matches": [
+        "https://hotels.ctrip.com/*",
+        "https://www.ctrip.com/hotels/*"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "public/icons/icon-16.png",
+    "48": "public/icons/icon-48.png",
+    "128": "public/icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "打开行程单"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "https://flights.ctrip.com/*",
+        "https://www.ctrip.com/*"
+      ],
+      "resources": [
+        "assets/inject-button-DMv_BzTE.js",
+        "assets/client-BvckCBpw.js",
+        "assets/ctrip-flight.ts-DXAxALE9.js"
+      ],
+      "use_dynamic_url": false
+    },
+    {
+      "matches": [
+        "https://hotels.ctrip.com/*",
+        "https://www.ctrip.com/*"
+      ],
+      "resources": [
+        "assets/inject-button-DMv_BzTE.js",
+        "assets/client-BvckCBpw.js",
+        "assets/ctrip-hotel.ts-BF7z3PpX.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}

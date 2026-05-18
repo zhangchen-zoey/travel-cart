@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Travel Cart - 行程单",
+  "version": "0.1.0",
+  "description": "携程行程收藏助手，一键添加机票/酒店到行程单",
+  "permissions": ["sidePanel", "storage", "tabs", "activeTab"],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://flights.ctrip.com/*",
+        "https://www.ctrip.com/flights/*"
+      ],
+      "js": ["src/content/ctrip-flight.ts"]
+    },
+    {
+      "matches": [
+        "https://hotels.ctrip.com/*",
+        "https://www.ctrip.com/hotels/*"
+      ],
+      "js": ["src/content/ctrip-hotel.ts"]
+    }
+  ],
+  "icons": {
+    "16": "public/icons/icon-16.png",
+    "48": "public/icons/icon-48.png",
+    "128": "public/icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "打开行程单"
+  }
+}
