@@ -28,7 +28,7 @@
     },
     {
       "js": [
-        "assets/ctrip-hotel.ts-loader-CQeMkxPz.js"
+        "assets/ctrip-hotel.ts-loader-CdMhVkyR.js"
       ],
       "matches": [
         "https://hotels.ctrip.com/*",
@@ -65,7 +65,7 @@
       "resources": [
         "assets/inject-button-DMv_BzTE.js",
         "assets/client-BvckCBpw.js",
-        "assets/ctrip-hotel.ts-BF7z3PpX.js"
+        "assets/ctrip-hotel.ts-DlHWt5U9.js"
       ],
       "use_dynamic_url": false
     }

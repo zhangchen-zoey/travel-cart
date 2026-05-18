@@ -20,8 +20,8 @@ const CURRENCY = 'CNY';
 
 // ─── 携程酒店页 DOM 选择器 ───────────────────────────────────────────────────
 
-/** 酒店卡片容器 */
-const HOTEL_CARD_SELECTOR = '.hotel-item, [class*="HotelItem"], .list-card';
+/** 酒店卡片容器 — 宽泛匹配携程各种版本 */
+const HOTEL_CARD_SELECTOR = '.hotel-item, [class*="HotelItem"], .list-card, [class*="hotel"][class*="item"], [class*="htl-item"], [data-reactid*="hotel"], .room-list-item, [class*="RoomItem"], [class*="roomItem"]';
 
 /** 各字段提取规则 */
 const RULES = {
@@ -198,7 +198,7 @@ function injectHotelButtons(cards: Element[]): void {
 // ─── 初始化 ───────────────────────────────────────────────────────────────────
 
 async function init(): Promise<void> {
-  console.log('[travel-cart] 🏨 Hotel content script loaded');
+  console.log('[travel-cart] 🏨 Hotel content script loaded, URL:', location.href);
 
   // 安装 XHR 拦截器
   installXhrInterceptor([
@@ -209,6 +209,19 @@ async function init(): Promise<void> {
 
   // 监听酒店卡片出现
   observeNewElements(HOTEL_CARD_SELECTOR, injectHotelButtons);
+
+  // Fallback: 5秒后如果没找到卡片，尝试在价格区域直接注入
+  setTimeout(() => {
+    const existing = document.querySelectorAll('.travel-cart-inject');
+    if (existing.length === 0) {
+      console.log('[travel-cart] 🏨 Fallback: trying broader selectors');
+      const priceAreas = document.querySelectorAll('[class*="price"], [class*="Price"], [class*="book"], [class*="Book"]');
+      if (priceAreas.length > 0) {
+        const mainPrice = priceAreas[0];
+        injectButton(mainPrice as Element, () => extractHotelData(mainPrice.closest('[class*="hotel"], [class*="room"], [class*="detail"], main, #root') || document.body));
+      }
+    }
+  }, 5000);
 }
 
 init();

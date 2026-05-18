@@ -106,8 +106,11 @@ export const useCartStore = create<CartState>()(
   )
 );
 
-// 监听来自 background 的价格更新
+// 监听来自 background 的消息
 chrome.runtime?.onMessage?.addListener((message: { action: string; payload?: any }) => {
+  if (message.action === 'ITEM_ADDED' && message.payload?.item) {
+    useCartStore.getState().addItem(message.payload.item);
+  }
   if (message.action === 'PRICE_UPDATE' && message.payload) {
     const { itemId, price, status } = message.payload;
     if (itemId && price !== undefined) {
