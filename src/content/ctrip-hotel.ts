@@ -21,7 +21,8 @@ const CURRENCY = 'CNY';
 // ─── 携程酒店页 DOM 选择器 ───────────────────────────────────────────────────
 
 /** 房型行容器 — 只匹配酒店详情页的房型列表行 */
-const HOTEL_CARD_SELECTOR = 'tr[class*="room"], [class*="RoomItem"], [class*="room-item"], .room-list tr, #J_RoomListTable tr';
+/** 携程酒店详情页的预订按钮容器（每个房型一个） */
+const HOTEL_CARD_SELECTOR = '[class*="saleRoomItemBox-BookAndLoginButton"]';
 
 /** 各字段提取规则 */
 const RULES = {
@@ -188,12 +189,11 @@ function injectHotelButtons(cards: Element[]): void {
   cards.forEach((card) => {
     if (card.querySelector('.travel-cart-inject')) return;
 
-    // 精确定位预订按钮区域
-    const bookBtn = card.querySelector('.room-book, [class*="book"], button[class*="book"], a[class*="book"]');
-    const anchor = bookBtn?.parentElement ?? card.querySelector('[class*="price"], [class*="Price"]') ?? null;
-    if (!anchor) return; // 找不到预订按钮区域则跳过
+    // card 本身就是预订按钮容器 (saleRoomItemBox-BookAndLoginButton)
+    // 向上找到房型行容器来提取数据
+    const roomRow = card.closest('[class*="saleRoomItemBox"]') || card.parentElement;
 
-    injectButton(anchor, () => extractHotelData(card));
+    injectButton(card, () => extractHotelData(roomRow || card));
   });
 }
 

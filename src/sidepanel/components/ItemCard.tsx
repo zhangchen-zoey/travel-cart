@@ -21,25 +21,36 @@ function isSoldOut(item: CartItem): boolean {
 
 /** 解析机票信息：从 title/subtitle 中提取关键展示字段 */
 function parseFlightDisplay(item: CartItem) {
-  // title 通常包含航班号，subtitle 包含航线等
   const title = item.title || '';
   const subtitle = item.subtitle || '';
   const raw = item.rawData || {};
 
-  // 航班号：取第一个匹配的
-  const flightNoMatch = title.match(/([A-Z]{2}\d{3,5})/);
-  const flightNo = flightNoMatch ? flightNoMatch[1] : '';
+  // 优先从 rawData 取（Content Script 提取的原始数据）
+  const flightNo = (raw['flightNo'] as string) || title.match(/([A-Z]{2}\d{3,5})/)?.[1] || '';
+  let departure = (raw['departCity'] as string) || '';
+  let arrival = (raw['arriveCity'] as string) || '';
+  let cabin = (raw['cabin'] as string) || '';
 
-  // 机场：尝试从 subtitle 或 rawData 解析 "上海虹桥 → 北京首都" 格式
-  const routeMatch = subtitle.match(/(.+?)\s*[→\-–>]+\s*(.+?)(?:\s|$)/) ||
-    title.match(/(.+?)\s*[→\-–>]+\s*(.+?)(?:\s|$)/);
-  const departure = (raw['departure'] as string) || routeMatch?.[1] || '';
-  const arrival = (raw['arrival'] as string) || routeMatch?.[2] || '';
+  // 如果 rawData 没有，从 subtitle 解析："出发城市 → 到达城市 | 舱位"
+  if (!departure || !arrival) {
+    const match = subtitle.match(/(.+?)\s*[→>\-–]+\s*(.+?)\s*[|｜]\s*(.+)/);
+    if (match) {
+      departure = departure || match[1].trim();
+      arrival = arrival || match[2].trim();
+      cabin = cabin || match[3].trim();
+    } else {
+      // fallback: 没有 | 分隔的情况
+      const routeMatch = subtitle.match(/(.+?)\s*[→>\-–]+\s*(.+)/);
+      if (routeMatch) {
+        departure = departure || routeMatch[1].trim();
+        arrival = arrival || routeMatch[2].trim();
+      }
+    }
+  }
+  if (!cabin) {
+    cabin = subtitle.match(/(经济舱|商务舱|头等舱|超级经济舱)/)?.[1] || '';
+  }
 
-  // 舱位
-  const cabin = (raw['cabin'] as string) || subtitle.match(/(经济舱|商务舱|头等舱|超级经济舱)/)?.[1] || '';
-
-  // 时间
   const timeStr = item.startTime && item.endTime ? `${item.startTime} - ${item.endTime}` : '';
 
   return { flightNo, departure, arrival, cabin, timeStr };

@@ -41,14 +41,14 @@ const RULES = {
 
   departCity: {
     name: 'departCity',
-    selector: '.depart-box .city, [class*="departCity"], .from-city',
-    regex: /出发城市[：:]\s*([\u4e00-\u9fa5]+)/,
+    selector: '.depart-box .city, [class*="departCity"], [class*="depart"] [class*="city"], [class*="from"] [class*="city"], .from-city, [class*="trip-airport"]:first-child',
+    regex: /([\u4e00-\u9fa5]{2,6})(?:\s*[\u2192>\-]|出发|起飞)/,
   } as ExtractionRule,
 
   arriveCity: {
     name: 'arriveCity',
-    selector: '.arrive-box .city, [class*="arriveCity"], .to-city',
-    regex: /到达城市[：:]\s*([\u4e00-\u9fa5]+)/,
+    selector: '.arrive-box .city, [class*="arriveCity"], [class*="arrive"] [class*="city"], [class*="to"] [class*="city"], .to-city, [class*="trip-airport"]:last-child',
+    regex: /(?:[\u2192>\-]|到达|降落)\s*([\u4e00-\u9fa5]{2,6})/,
   } as ExtractionRule,
 
   departTime: {
@@ -104,8 +104,38 @@ export function extractFlightData(
   const cabin = extract(RULES.cabin, flightCard)?.value ?? '经济舱';
   const dateStr = extract(RULES.date, document)?.value ?? new Date().toISOString().slice(0, 10);
 
+  // URL 兆底解析城市（携程 URL 格式: oneway-sha-bjs 或 sha-bjs）
+  const CITY_CODES: Record<string, string> = {
+    sha: '上海', pvg: '上海', bjs: '北京', pek: '北京',
+    can: '广州', szx: '深圳', ctu: '成都', ckg: '重庆',
+    hgh: '杭州', nkg: '南京', wuh: '武汉', xiy: '西安',
+    tna: '济南', dlc: '大连', tao: '青岛', syx: '三亚',
+    hak: '海口', kmg: '昆明', xmn: '厦门', foc: '福州',
+    tsn: '天津', hrb: '哈尔滨', she: '沈阳', cgq: '长春',
+    nng: '南宁', lhw: '兰州', csx: '长沙', kwe: '贵阳',
+    tyo: '东京', osa: '大阪', sel: '首尔', bkk: '曼谷',
+    sgn: '胡志明', sin: '新加坡', kul: '吉隆坡',
+  };
+  let finalDepartCity = departCity;
+  let finalArriveCity = arriveCity;
+  if (!finalDepartCity || !finalArriveCity) {
+    const urlMatch = location.href.match(/(?:oneway|roundtrip)[\-\/]([a-z]{3})[\-\/]([a-z]{3})/);
+    if (urlMatch) {
+      finalDepartCity = finalDepartCity || CITY_CODES[urlMatch[1]] || urlMatch[1].toUpperCase();
+      finalArriveCity = finalArriveCity || CITY_CODES[urlMatch[2]] || urlMatch[2].toUpperCase();
+    }
+  }
+  // 也从页面标题解析："上海到北京机票"
+  if (!finalDepartCity || !finalArriveCity) {
+    const titleMatch = document.title.match(/([\u4e00-\u9fa5]{2,4})到([\u4e00-\u9fa5]{2,4})/);
+    if (titleMatch) {
+      finalDepartCity = finalDepartCity || titleMatch[1];
+      finalArriveCity = finalArriveCity || titleMatch[2];
+    }
+  }
+
   const title = `${airline} ${flightNo}`.trim() || '未知航班';
-  const subtitle = `${departCity} → ${arriveCity} | ${cabin}`;
+  const subtitle = `${finalDepartCity} → ${finalArriveCity} | ${cabin}`;
 
   return {
     type: ITEM_TYPE,
@@ -121,8 +151,8 @@ export function extractFlightData(
     rawData: {
       flightNo,
       airline,
-      departCity,
-      arriveCity,
+      departCity: finalDepartCity,
+      arriveCity: finalArriveCity,
       departTime,
       arriveTime,
       cabin,
