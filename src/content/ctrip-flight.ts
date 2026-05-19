@@ -94,8 +94,8 @@ const RULES = {
 export function extractFlightData(
   flightCard: Element
 ): Omit<CartItem, 'id' | 'addedAt' | 'priceUpdatedAt'> {
-  const flightNo = extract(RULES.flightNo, flightCard)?.value ?? '';
-  const airline = extract(RULES.airline, flightCard)?.value ?? '';
+  const rawFlightNo = extract(RULES.flightNo, flightCard)?.value ?? '';
+  const rawAirline = extract(RULES.airline, flightCard)?.value ?? '';
   const departCity = extract(RULES.departCity, flightCard)?.value ?? '';
   const arriveCity = extract(RULES.arriveCity, flightCard)?.value ?? '';
   const departTime = extract(RULES.departTime, flightCard)?.value ?? '';
@@ -103,6 +103,14 @@ export function extractFlightData(
   const priceStr = extract(RULES.price, flightCard)?.value ?? '0';
   const cabin = extract(RULES.cabin, flightCard)?.value ?? '经济舱';
   const dateStr = extract(RULES.date, document)?.value ?? new Date().toISOString().slice(0, 10);
+
+  // 清洗航班号：只取第一个匹配的 [A-Z]{2}\d{3,5}
+  const flightNoMatch = rawFlightNo.match(/([A-Z]{2}\d{3,5})/);
+  const flightNo = flightNoMatch ? flightNoMatch[1] : rawFlightNo.replace(/\s.*/,'');
+
+  // 清洗航司名：只取中文航司名（去掉航班号和机型）
+  const airlineMatch = rawAirline.match(/([\u4e00-\u9fa5]{2,6}航空)/);
+  const airline = airlineMatch ? airlineMatch[1] : rawAirline.replace(/[A-Z]{2}\d+.*/,'').trim();
 
   // URL 兆底解析城市（携程 URL 格式: oneway-sha-bjs 或 sha-bjs）
   const CITY_CODES: Record<string, string> = {

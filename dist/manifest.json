@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/ctrip-flight.ts-loader-DU4xlEUS.js"
+        "assets/ctrip-flight.ts-loader-DdZabsW2.js"
       ],
       "matches": [
         "https://flights.ctrip.com/*",
@@ -53,7 +53,7 @@
       "resources": [
         "assets/inject-button-DMv_BzTE.js",
         "assets/client-BvckCBpw.js",
-        "assets/ctrip-flight.ts-C0-Oiwox.js"
+        "assets/ctrip-flight.ts-CcuSL8NE.js"
       ],
       "use_dynamic_url": false
     },
