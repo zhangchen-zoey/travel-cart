@@ -37,10 +37,13 @@ export const useCartStore = create<CartState>()(
           ],
         })),
 
-      removeItem: (id) =>
+      removeItem: (id) => {
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
-        })),
+        }));
+        // Notify background to broadcast ITEM_REMOVED to content scripts
+        chrome.runtime?.sendMessage({ action: 'REMOVE_ITEM', payload: { id } }).catch(() => {});
+      },
 
       reorder: (fromIndex, toIndex) =>
         set((state) => {
@@ -106,10 +109,20 @@ export const useCartStore = create<CartState>()(
   )
 );
 
-// 监听来自 background 的消息
+// 监听来自 background 的消息（即时通道）
 chrome.runtime?.onMessage?.addListener((message: { action: string; payload?: any }) => {
   if (message.action === 'ITEM_ADDED' && message.payload?.item) {
-    useCartStore.getState().addItem(message.payload.item);
+    // Background 已写好完整 item（含 id），直接 merge 到 store
+    const item = message.payload.item as CartItem;
+    const existing = useCartStore.getState().items;
+    if (!existing.find((i) => i.id === item.id)) {
+      useCartStore.setState({ items: [...existing, item] });
+      console.log('[travel-cart][sidepanel] ITEM_ADDED via message, total:', existing.length + 1);
+    }
+  }
+  if (message.action === 'ITEM_REMOVED' && message.payload?.id) {
+    useCartStore.getState().removeItem(message.payload.id);
+    console.log('[travel-cart][sidepanel] ITEM_REMOVED via message:', message.payload.id);
   }
   if (message.action === 'PRICE_UPDATE' && message.payload) {
     const { itemId, price, status } = message.payload;
@@ -119,5 +132,23 @@ chrome.runtime?.onMessage?.addListener((message: { action: string; payload?: any
   }
   if (message.action === 'ALL_STALE') {
     useCartStore.getState().markAllStale();
+  }
+});
+
+// 监听 chrome.storage.onChanged 作为兜底同步（解决 Side Panel 不实时更新）
+chrome.storage?.onChanged?.addListener((changes, area) => {
+  if (area === 'local' && changes[STORAGE_KEY_CART]?.newValue) {
+    try {
+      const parsed = JSON.parse(changes[STORAGE_KEY_CART].newValue);
+      const newItems: CartItem[] = parsed?.state?.items ?? [];
+      const currentItems = useCartStore.getState().items;
+      // 只在数量或内容不同时更新，避免循环触发
+      if (JSON.stringify(currentItems.map(i => i.id)) !== JSON.stringify(newItems.map(i => i.id))) {
+        useCartStore.setState({ items: newItems });
+        console.log('[travel-cart][sidepanel] storage.onChanged sync, items:', newItems.length);
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
   }
 });

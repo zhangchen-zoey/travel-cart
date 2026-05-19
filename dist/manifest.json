@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/ctrip-flight.ts-loader-DdZabsW2.js"
+        "assets/ctrip-flight.ts-loader-D0u6OwqS.js"
       ],
       "matches": [
         "https://flights.ctrip.com/*",
@@ -28,7 +28,7 @@
     },
     {
       "js": [
-        "assets/ctrip-hotel.ts-loader-Ce_xTkJk.js"
+        "assets/ctrip-hotel.ts-loader-3mpgyCLS.js"
       ],
       "matches": [
         "https://hotels.ctrip.com/*",
@@ -51,9 +51,9 @@
         "https://www.ctrip.com/*"
       ],
       "resources": [
-        "assets/inject-button-DMv_BzTE.js",
+        "assets/inject-button-A9pNe96d.js",
         "assets/client-BvckCBpw.js",
-        "assets/ctrip-flight.ts-CcuSL8NE.js"
+        "assets/ctrip-flight.ts-CHkVdVps.js"
       ],
       "use_dynamic_url": false
     },
@@ -63,9 +63,9 @@
         "https://www.ctrip.com/*"
       ],
       "resources": [
-        "assets/inject-button-DMv_BzTE.js",
+        "assets/inject-button-A9pNe96d.js",
         "assets/client-BvckCBpw.js",
-        "assets/ctrip-hotel.ts-WF_Oq8_s.js"
+        "assets/ctrip-hotel.ts-BadWBBY4.js"
       ],
       "use_dynamic_url": false
     }

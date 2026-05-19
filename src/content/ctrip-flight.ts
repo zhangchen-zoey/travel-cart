@@ -21,7 +21,7 @@ const CURRENCY = 'CNY';
 // ─── 携程机票页 DOM 选择器（基于携程实际页面结构的合理推测） ─────────────────
 
 /** 航班卡片容器 */
-const FLIGHT_CARD_SELECTOR = '.flight-item, [class*="FlightItem"], .list-item';
+const FLIGHT_CARD_SELECTOR = '.flight-item, [class*="FlightItem"], [class*="flight-item"], [class*="flightItem"], .list-item, [class*="Flight"][class*="card"], [class*="flight"][class*="card"]';
 
 /** 各字段提取规则 */
 const RULES = {

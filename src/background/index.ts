@@ -166,6 +166,11 @@ onMessage((message: ExtensionMessage & { action: string; payload?: any }, _sende
       sendResponse({ success: true });
       break;
 
+    case 'REMOVE_ITEM':
+      handleRemoveItem((message as any).payload?.id);
+      sendResponse({ success: true });
+      break;
+
     case 'CHECK_PRICE':
       // 触发 ghost refresh
       const { itemId, sourceUrl } = (message as any).payload;
@@ -190,26 +195,70 @@ onMessage((message: ExtensionMessage & { action: string; payload?: any }, _sende
 });
 
 /**
- * 处理添加行程项
+ * 串行化锁：防止并发 ADD_ITEM 竞态
+ */
+let storageOpLock = Promise.resolve();
+
+/**
+ * 处理添加行程项（串行化）
  */
 async function handleAddItem(payload: Omit<CartItem, 'id' | 'addedAt' | 'priceUpdatedAt'>) {
-  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  const item: CartItem = {
-    ...payload,
-    id,
-    addedAt: Date.now(),
-    priceUpdatedAt: Date.now(),
-  };
+  storageOpLock = storageOpLock.then(async () => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const item: CartItem = {
+      ...payload,
+      id,
+      addedAt: Date.now(),
+      priceUpdatedAt: Date.now(),
+    };
 
-  // 读取当前 items
-  const result = await chrome.storage.local.get(STORAGE_KEY_CART);
-  const stored = result[STORAGE_KEY_CART];
-  const state = stored ? JSON.parse(stored as string) : { state: { items: [] } };
-  state.state.items.push(item);
-  await chrome.storage.local.set({ [STORAGE_KEY_CART]: JSON.stringify(state) });
+    // 读取当前 items
+    const result = await chrome.storage.local.get(STORAGE_KEY_CART);
+    const stored = result[STORAGE_KEY_CART];
+    const state = stored ? JSON.parse(stored as string) : { state: { items: [] } };
+    state.state.items.push(item);
+    await chrome.storage.local.set({ [STORAGE_KEY_CART]: JSON.stringify(state) });
 
-  // 通知 side panel
-  notifySidePanel('ITEM_ADDED', { item });
+    console.log('[travel-cart][background] ADD_ITEM done, total items:', state.state.items.length);
+
+    // 通知 side panel
+    notifySidePanel('ITEM_ADDED', { item });
+  });
+  await storageOpLock;
+}
+
+/**
+ * 处理移除行程项（串行化）+ 广播到 content scripts
+ */
+async function handleRemoveItem(id: string) {
+  if (!id) return;
+  storageOpLock = storageOpLock.then(async () => {
+    const result = await chrome.storage.local.get(STORAGE_KEY_CART);
+    const stored = result[STORAGE_KEY_CART];
+    if (!stored) return;
+    const state = JSON.parse(stored as string);
+    state.state.items = (state.state.items ?? []).filter((i: CartItem) => i.id !== id);
+    await chrome.storage.local.set({ [STORAGE_KEY_CART]: JSON.stringify(state) });
+    console.log('[travel-cart][background] REMOVE_ITEM done, remaining:', state.state.items.length);
+  });
+  await storageOpLock;
+
+  // 广播 ITEM_REMOVED 到所有 tabs 的 content scripts
+  notifySidePanel('ITEM_REMOVED', { id });
+  broadcastToContentScripts('ITEM_REMOVED', { id });
+}
+
+/**
+ * 广播消息到所有 content scripts
+ */
+function broadcastToContentScripts(action: string, payload: Record<string, unknown>): void {
+  chrome.tabs.query({}, (tabs) => {
+    for (const tab of tabs) {
+      if (tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action, payload }).catch(() => {});
+      }
+    }
+  });
 }
 
 /**

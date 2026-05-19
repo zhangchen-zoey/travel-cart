@@ -67,6 +67,25 @@ interface InjectButtonProps {
 const InjectButton: React.FC<InjectButtonProps> = ({ extractData }) => {
   const [state, setState] = React.useState<ButtonState>('idle');
 
+  // Listen for ITEM_REMOVED from background to reset button state
+  React.useEffect(() => {
+    const listener = (message: { action: string; payload?: any }) => {
+      if (message.action === 'ITEM_REMOVED') {
+        // Reset this button since item was removed
+        // We reset all 'added' buttons matching the removed item
+        // Since we don't track exact id match in content script, reset if currently 'added'
+        if (state === 'added') {
+          setState('idle');
+          console.log('[travel-cart][button] Reset to idle due to ITEM_REMOVED');
+        }
+      }
+    };
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      chrome.runtime.onMessage.addListener(listener);
+      return () => chrome.runtime.onMessage.removeListener(listener);
+    }
+  }, [state]);
+
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -77,6 +96,7 @@ const InjectButton: React.FC<InjectButtonProps> = ({ extractData }) => {
 
     try {
       const data = extractData();
+      console.log('[travel-cart][button] Click payload:', data);
 
       // 通过 chrome.runtime.sendMessage 发送到 Background
       const message: AddItemMessage = {

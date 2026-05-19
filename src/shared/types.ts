@@ -91,4 +91,9 @@ export interface ReanchorMessage {
   payload?: any;
 }
 
-export type ExtensionMessage = AddItemMessage | PriceCheckMessage | PriceResultMessage | CaptchaDetectedMessage | ReanchorMessage;
+export interface RemoveItemMessage {
+  action: 'REMOVE_ITEM';
+  payload: { itemId: string };
+}
+
+export type ExtensionMessage = AddItemMessage | PriceCheckMessage | PriceResultMessage | CaptchaDetectedMessage | ReanchorMessage | RemoveItemMessage;
